@@ -1,0 +1,15 @@
+<h2>قائمة البدائل الصحية المقترحة</h2>
+<table border="1">
+    <tr>
+        <th>الأكلة الأصلية</th>
+        <th>البديل الصحي</th>
+        <th>السبب</th>
+    </tr>
+    {% for item in alternatives %}
+    <tr>
+        <td>{{ item.original_food.name }}</td>
+        <td>{{ item.suggested_alternative.name }}</td>
+        <td>{{ item.reason_why }}</td>
+    </tr>
+    {% endfor %}
+</table>
