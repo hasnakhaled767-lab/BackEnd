@@ -5,10 +5,18 @@ class HealthProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     height = models.FloatField(null=True, blank=True)
     weight = models.FloatField(null=True, blank=True)
-    age = models.IntegerField(null=True, blank=True) # تأكدي إن السطر ده موجود
+    age = models.IntegerField(null=True, blank=True)
     gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female')], null=True)
     daily_calories_goal = models.IntegerField(null=True, blank=True)
+    
+    # --- الإضافات الجديدة القوية للمناقشة ---
+    has_diabetes = models.BooleanField(default=False, verbose_name="سكر")
+    has_blood_pressure = models.BooleanField(default=False, verbose_name="ضغط")
+    chronic_diseases = models.TextField(null=True, blank=True, verbose_name="أمراض مزمنة أخرى")
+    food_allergies = models.TextField(null=True, blank=True, verbose_name="حساسية طعام")
 
+    def __str__(self):
+        return f"Health Profile for {self.user.username}"
     
 # 2. جدول الأطعمة (بيانات مرجعية للأكلات)
 class Food(models.Model):
