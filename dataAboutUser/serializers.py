@@ -28,11 +28,12 @@ class FoodAlternativeSerializer(serializers.ModelSerializer):
         model = FoodAlternative
         fields = ['original_food', 'suggested_alternative', 'reason_why']
 
-# 4. سيرياليزر تاريخ المسح (الاسكان)
 class ScanHistorySerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(required=True) # السطر ده هو "كلمة السر" للزرار
+
     class Meta:
         model = ScanHistory
-        fields = ['id', 'user', 'detected_food', 'ai_analysis', 'image', 'created_at']
+        fields = ['user', 'detected_food_name', 'image']
 
 # 5. سيرياليزر الملف الصحي (اللي ضفنا فيه الحقول الجديدة)
 class HealthProfileSerializer(serializers.ModelSerializer):
