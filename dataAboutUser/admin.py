@@ -9,7 +9,7 @@ class HealthProfileAdmin(admin.ModelAdmin):
 
 @admin.register(Food)
 class FoodAdmin(admin.ModelAdmin):
-    list_display = ('name', 'calories', 'sugar', 'fats')
+    list_display = ('name', 'calories', 'fats')
     search_fields = ('name',)
 
 admin.site.register(ScanHistory)

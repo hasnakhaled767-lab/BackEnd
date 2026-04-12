@@ -37,14 +37,14 @@ def add_test_scan(request):
         return redirect('scan_list')
     return render(request, 'add_scan.html')
 
-# 3. عرض البدائل (Web)
-def food_list(request):
-    alternatives = FoodAlternative.objects.all() 
-    return render(request, 'dataAboutUser/food_list.html', {'alternatives': alternatives})
+from rest_framework import generics
+from .models import Food
+from .serializers import FoodSerializer
 
-# --- APIs Section ---
+class FoodList(generics.ListCreateAPIView):
+    queryset = Food.objects.all()
+    serializer_class = FoodSerializer
 
-# API البدائل الصحية
 @api_view(['GET'])
 def get_alternatives_api(request):
     alternatives = FoodAlternative.objects.all()
