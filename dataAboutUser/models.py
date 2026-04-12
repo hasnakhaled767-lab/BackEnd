@@ -9,7 +9,6 @@ class HealthProfile(models.Model):
     gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female')], null=True)
     daily_calories_goal = models.IntegerField(null=True, blank=True)
     
-    # --- الإضافات الجديدة القوية للمناقشة ---
     has_diabetes = models.BooleanField(default=False, verbose_name="سكر")
     has_blood_pressure = models.BooleanField(default=False, verbose_name="ضغط")
     chronic_diseases = models.TextField(null=True, blank=True, verbose_name="أمراض مزمنة أخرى")
