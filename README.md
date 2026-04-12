@@ -34,3 +34,6 @@
    ```bash
    python manage.py runserver
    ```
+
+
+   **تطوير: حسناء خالد (Backend Developer)**
