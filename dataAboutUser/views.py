@@ -26,7 +26,7 @@ def signup_api(request):
     if serializer.is_valid():
         user = serializer.save()
         HealthProfile.objects.create(user=user)
-        return Response({"message": "User created!", "user_id": user.id}, status=201)
+        return Response({"message": "User created successful!", "user_id": user.id}, status=201)
     return Response(serializer.errors, status=400)
 
 @api_view(['POST'])
