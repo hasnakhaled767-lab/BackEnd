@@ -18,19 +18,21 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.contrib.auth import update_session_auth_hash
 from .serializers import ChangePasswordSerializer # تأكدي من عمل import
+from rest_framework import generics, permissions # عشان يعرف permissions
+from .models import ScanHistory
+from .serializers import ScanHistorySerializer 
 
 
 # استيراد الموديلات والسيريالايزر
 from .models import Food, FoodAlternative, HealthProfile, ScanHistory
 from .serializers import (
-    FoodAlternativeSerializer, 
-    UserSerializer, 
-    ScanHistorySerializer, 
+    FoodAlternativeSerializer,
+    UserSerializer,
+    ScanHistorySerializer, # اتأكدي إن آخرها Serializer ومكتوبة صح
     HealthProfileSerializer,
     FoodSerializer,
     ChangePasswordSerializer,
 )
-
 # --- 1. APIs الحسابات (Signup & Login) ---
 
 @api_view(['POST'])
@@ -205,3 +207,14 @@ class ChangePasswordView(generics.UpdateAPIView):
             return Response({"status": "success", "message": "تم تغيير كلمة المرور بنجاح!"}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+class ScanHistoryList(generics.ListAPIView):
+    serializer_class = ScanHistorySerializer # غيري دي لـ ScanHistorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # غيري Scan لـ ScanHistory
+        return ScanHistory.objects.filter(user=self.request.user).order_by('-created_at')
+    
