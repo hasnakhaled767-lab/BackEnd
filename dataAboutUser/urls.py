@@ -5,8 +5,7 @@ urlpatterns = [
     # 1. حسابات المستخدمين
     path('signup/', views.signup_api, name='signup_api'),
     path('login/', views.login_api, name='login_api'),
-    path('change-password/', views.change_password, name='change_password'),
-
+    path('change-password/', views.ChangePasswordView.as_view(), name='change_password'), 
     # 2. البيانات الصحية (البروفايل)
     path('profile/update/<int:user_id>/', views.update_health_profile, name='update_health_profile'),
 

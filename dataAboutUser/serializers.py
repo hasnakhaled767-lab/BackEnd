@@ -2,6 +2,11 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Food, FoodAlternative, HealthProfile, ScanHistory
 
+from rest_framework import serializers
+from django.contrib.auth.models import User
+from rest_framework import serializers
+
+
 # 1. سيرياليزر المستخدم (للتسجيل والدخول)
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -33,30 +38,16 @@ class ScanHistorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ScanHistory
-fields = [
-            'status', 
-            'is_safe', 
-            'analysis_result', 
-            'health_metrics', 
-            'image_url'
-        ]
-
+        fields = '__all__' 
 
 class HealthProfileSerializer(serializers.ModelSerializer):
-    # بنضيف الحقول المحسوبة كـ ReadOnly عشان تظهر في الـ API بس متتمسحش
-    bmi_value = serializers.ReadOnlyField()
-    bmi_status = serializers.ReadOnlyField()
-    bmr_value = serializers.ReadOnlyField()
-
     class Meta:
         model = HealthProfile
         fields = [
-            'id', 'user', 'height', 'weight', 'age', 'gender', 
-            'has_diabetes', 'has_blood_pressure', 'has_lactose_allergy',
-            'bmi_value', 'bmi_status', 'bmr_value'
+            'user', 'height', 'weight', 'age', 'gender',
+            'has_diabetes', 'has_blood_pressure', 'has_lactose_allergy'
         ]
-
-
+        
 
 
 
@@ -66,6 +57,7 @@ class ChangePasswordSerializer(serializers.Serializer):
     confirm_password = serializers.CharField(required=True)
 
     def validate(self, data):
+        # التأكد من تطابق كلمتي المرور الجديدتين
         if data['new_password'] != data['confirm_password']:
             raise serializers.ValidationError({"confirm_password": "كلمة المرور الجديدة غير متطابقة."})
         return data
