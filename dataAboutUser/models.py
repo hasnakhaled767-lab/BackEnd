@@ -1,22 +1,47 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+
 class HealthProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+    # تعديل: إضافة null=True و blank=True
     height = models.FloatField(null=True, blank=True)
     weight = models.FloatField(null=True, blank=True)
     age = models.IntegerField(null=True, blank=True)
-    gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female')], null=True)
-    daily_calories_goal = models.IntegerField(null=True, blank=True)
+    gender = models.CharField(max_length=10, null=True, blank=True)
     
-    has_diabetes = models.BooleanField(default=False, verbose_name="سكر")
-    has_blood_pressure = models.BooleanField(default=False, verbose_name="ضغط")
-    chronic_diseases = models.TextField(null=True, blank=True, verbose_name="أمراض مزمنة أخرى")
-    food_allergies = models.TextField(null=True, blank=True, verbose_name="حساسية طعام")
+    # الحقول الطبية برضه نخليها False كقيمة افتراضية
+    has_diabetes = models.BooleanField(default=False)
+    has_blood_pressure = models.BooleanField(default=False)
+    has_lactose_allergy = models.BooleanField(default=False)
+    # حساب الـ BMI تلقائياً
+    @property
+    def bmi_value(self):
+        if self.height and self.weight:
+            height_m = self.height / 100
+            return round(self.weight / (height_m ** 2), 1)
+        return 0
+
+    @property
+    def bmi_status(self):
+        bmi = self.bmi_value
+        if bmi < 18.5: return "نحافة"
+        elif 18.5 <= bmi < 25: return "وزن مثالي"
+        elif 25 <= bmi < 30: return "زيادة في الوزن"
+        else: return "سمنة"
+
+    # حساب الـ BMR (معادلة Mifflin-St Jeor)
+    @property
+    def bmr_value(self):
+        if self.height and self.weight and self.age:
+            if self.gender.lower() in ['female', 'female', 'أنثى']:
+                return round((10 * self.weight) + (6.25 * self.height) - (5 * self.age) - 161, 0)
+            else:
+                return round((10 * self.weight) + (6.25 * self.height) - (5 * self.age) + 5, 0)
+        return 0
 
     def __str__(self):
-        return f"Health Profile for {self.user.username}"
-    
+        return f"Profile: {self.user.username}"
 # 2. جدول الأطعمة (بيانات مرجعية للأكلات)
 class Food(models.Model):
     name = models.CharField(max_length=100)

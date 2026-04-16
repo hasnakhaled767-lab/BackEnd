@@ -33,14 +33,39 @@ class ScanHistorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ScanHistory
-        fields = ['user', 'detected_food_name', 'image']
+fields = [
+            'status', 
+            'is_safe', 
+            'analysis_result', 
+            'health_metrics', 
+            'image_url'
+        ]
 
-# 5. سيرياليزر الملف الصحي (اللي ضفنا فيه الحقول الجديدة)
+
 class HealthProfileSerializer(serializers.ModelSerializer):
+    # بنضيف الحقول المحسوبة كـ ReadOnly عشان تظهر في الـ API بس متتمسحش
+    bmi_value = serializers.ReadOnlyField()
+    bmi_status = serializers.ReadOnlyField()
+    bmr_value = serializers.ReadOnlyField()
+
     class Meta:
         model = HealthProfile
         fields = [
             'id', 'user', 'height', 'weight', 'age', 'gender', 
-            'daily_calories_goal', 'has_diabetes', 
-            'has_blood_pressure', 'food_allergies', 'chronic_diseases'
+            'has_diabetes', 'has_blood_pressure', 'has_lactose_allergy',
+            'bmi_value', 'bmi_status', 'bmr_value'
         ]
+
+
+
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
+    confirm_password = serializers.CharField(required=True)
+
+    def validate(self, data):
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError({"confirm_password": "كلمة المرور الجديدة غير متطابقة."})
+        return data
