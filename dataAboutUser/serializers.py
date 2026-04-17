@@ -39,8 +39,8 @@ class ScanHistorySerializer(serializers.ModelSerializer):
     class Meta:
       model = ScanHistory
       
-      fields = ['image', 'food_name', 'calories', 'protein', 'carbs', 'fats', 'is_healthy', 'user']
-      read_only_fields = ['food_name', 'calories', 'protein', 'carbs', 'fats', 'is_healthy', 'user']
+fields = ['id', 'food_name', 'calories', 'protein', 'carbs', 'fats', 'is_healthy', 'image', 'scan_date']
+read_only_fields = ['food_name', 'calories', 'protein', 'carbs', 'fats', 'is_healthy', 'user','image', 'scan_date']
 
       
 class HealthProfileSerializer(serializers.ModelSerializer):

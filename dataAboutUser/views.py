@@ -273,4 +273,14 @@ class ScanHistoryList(generics.ListAPIView):
         return ScanHistory.objects.filter(user=self.request.user).order_by('-created_at')
     
 
+
+    # ضيفي ده في آخر ملف views.py
+class UserScanHistoryList(generics.ListAPIView):
+    serializer_class = ScanHistorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # بيرجع تاريخ اليوزر اللي عامل login حالياً بس
+        return ScanHistory.objects.filter(user=self.request.user).order_by('-scan_date')
+
     

@@ -20,6 +20,11 @@ class FoodAdmin(admin.ModelAdmin):
     list_display = ('name', 'calories', 'protein', 'carbs', 'fats', 'image')
     search_fields = ('name',)
 
-admin.site.register(ScanHistory)
 admin.site.register(AnalysisResult)
 admin.site.register(FoodAlternative)
+
+
+@admin.register(ScanHistory)
+class ScanHistoryAdmin(admin.ModelAdmin):
+    # اتأكدي إن الأسماء دي هي اللي في الموديل بالظبط
+    list_display = ['user', 'food_name', 'scan_date', 'is_healthy', 'image', 'calories', 'protein', 'carbs', 'fats']

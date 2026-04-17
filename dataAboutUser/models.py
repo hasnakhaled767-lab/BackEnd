@@ -66,7 +66,7 @@ class ScanHistory(models.Model):
     image = models.ImageField(upload_to='scans/', null=True, blank=True)
     scan_date = models.DateTimeField(auto_now_add=True) # بيسجل التاريخ والوقت تلقائياً
     def __str__(self):
-        return f"{self.user.username} scanned {self.detected_food_name}"
+        return f"{self.user.username} scanned {self.food_name}"
 
 # 4. جدول نتائج التحليل (فصل تفاصيل التحليل عن السجل العام)
 class AnalysisResult(models.Model):
