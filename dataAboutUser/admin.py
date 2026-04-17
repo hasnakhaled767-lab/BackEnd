@@ -17,7 +17,7 @@ class HealthProfileAdmin(admin.ModelAdmin):
 
 @admin.register(Food)
 class FoodAdmin(admin.ModelAdmin):
-    list_display = ('name', 'calories', 'fats')
+    list_display = ('name', 'calories', 'protein', 'carbs', 'fats')
     search_fields = ('name',)
 
 admin.site.register(ScanHistory)
