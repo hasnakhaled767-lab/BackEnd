@@ -65,15 +65,11 @@ class ScanHistory(models.Model):
     is_healthy = models.BooleanField(default=True)
     image = models.ImageField(upload_to='scans/', null=True, blank=True)
     scan_date = models.DateTimeField(auto_now_add=True) # بيسجل التاريخ والوقت تلقائياً
+    suggested_alternative = models.CharField(max_length=255, null=True, blank=True)
     def __str__(self):
         return f"{self.user.username} scanned {self.food_name}"
 
-# 4. جدول نتائج التحليل (فصل تفاصيل التحليل عن السجل العام)
-class AnalysisResult(models.Model):
-    scan = models.OneToOneField(ScanHistory, on_delete=models.CASCADE)
-    ai_feedback = models.TextField()
-    health_score = models.IntegerField(null=True, blank=True)
-    is_safe = models.BooleanField(default=True)
+
 
 # 5. جدول البدائل الصحية (يربط الأكلة ببديل أفضل منها)
 class FoodAlternative(models.Model):

@@ -136,75 +136,115 @@ def update_health_profile(request):  # شلنا الـ user_id من هنا نه�
             "message": str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 class CreateScanAPI(generics.CreateAPIView):
     queryset = ScanHistory.objects.all()
     serializer_class = ScanHistorySerializer
     parser_classes = (MultiPartParser, FormParser)
 
     def create(self, request, *args, **kwargs):
-        # 1. الحصول على البيانات الأساسية من الطلب
         image_file = request.FILES.get('image')
-        user_id = request.data.get('user')
-        # نفترض أن اسم الأكلة يأتي من موديل الـ AI أو مدخل بسيط
-        food_name_input = request.data.get('detected_food_name', '').lower().strip()
+        user = request.user 
+        food_name_input = request.data.get('food_name', '').lower().strip()
 
-        if not image_file or not user_id:
-            return Response({"error": "يرجى إرسال الصورة ومعرف المستخدم"}, status=400)
+        if not image_file:
+            return Response({"error": "يرجى إرسال الصورة"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if user.is_anonymous:
+            return Response({"error": "يجب تسجيل الدخول أولاً"}, status=status.HTTP_401_UNAUTHORIZED)
 
         try:
-            # 2. جلب بروفايل المستخدم وبيانات الطعام من الداتابيز
-            profile = HealthProfile.objects.filter(user_id=user_id).first()
+            profile = HealthProfile.objects.filter(user=user).first()
             food_item = Food.objects.filter(name__iexact=food_name_input).first()
 
             if not food_item:
-                return Response({"error": "هذا الطعام غير مسجل في قاعدة البيانات"}, status=404)
+                return Response({"error": "هذا الطعام غير مسجل في قاعدة البيانات"}, status=status.HTTP_404_NOT_FOUND)
 
-            # 3. منطق فحص الحالة الصحية (السكري، الضغط، اللاكتوز)
             is_safe = True
             reasons = []
+            suggested_alternative = None
+
+            # --- قوائم المنع والبدايل لكل حالة ---
             
-            # القوائم الطبية التحذيرية
-            diabetes_list = ['pancakes', 'waffles', 'ice cream', 'milkshakes', 'pizza', 'grapes', 'mango', 'pineapple', 'watermelon']
-            pressure_list = ['bacon', 'sausage', 'hot dogs', 'steak', 'burgers', 'pizza', 'french fries', 'shrimp']
-            lactose_list = ['ice cream', 'milkshakes', 'pancakes', 'waffles', 'pizza', 'cheese']
+            # 1. مرض السكر
+            diabetes_map = {
+                'pancakes': 'بان كيك الشوفان بدون سكر',
+                'waffles': 'وافل بدقيق اللوز',
+                'ice cream': 'زبادي يوناني مثلج بالفواكه',
+                'pizza': 'بيتزا بعجينة الشوفان وخضروات',
+                'grapes': 'فراولة أو توت (مؤشر جلايسيمي منخفض)',
+                'mango': 'تفاح أخضر',
+                'pineapple': 'كمثرى',
+                'watermelon': 'كانتالوب'
+            }
+
+            # 2. مرض الضغط
+            pressure_map = {
+                'bacon': 'صدور ديك رومي مشوية',
+                'sausage': 'قطع دجاج مشوية',
+                'hot dogs': 'سمك مشوي',
+                'steak': 'لحم أحمر خالي من الدهون',
+                'burgers': 'برجر دجاج منزلي مشوي',
+                'pizza': 'بيتزا منزلية بجبنة قليلة الملح',
+                'french fries': 'بطاطس ودجز مشوية في الفرن',
+                'shrimp': 'سمك فيليه مشوي'
+            }
+
+            # 3. حساسية اللاكتوز
+            lactose_map = {
+                'ice cream': 'آيس كريم حليب جوز الهند أو اللوز',
+                'milkshakes': 'سموثي فواكه بحليب الشوفان',
+                'pancakes': 'بان كيك مخبوز بزيت جوز الهند',
+                'waffles': 'وافل نباتي (Vegan)',
+                'pizza': 'بيتزا بدون جبنة أو بجبنة نباتية',
+                'cheese': 'لبنة خالية من اللاكتوز أو جبنة لوز'
+            }
 
             if profile:
-                if profile.has_diabetes and food_name_input in diabetes_list:
+                # فحص السكر
+                if profile.has_diabetes and food_name_input in diabetes_map:
                     is_safe = False
-                    reasons.append("غير مناسب لمريض السكر (سكريات/نشويات عالية)")
+                    reasons.append("غير مناسب لمريض السكر")
+                    suggested_alternative = diabetes_map[food_name_input]
                 
-                if profile.has_blood_pressure and food_name_input in pressure_list:
+                # فحص الضغط
+                if profile.has_blood_pressure and food_name_input in pressure_map:
                     is_safe = False
-                    reasons.append("غير مناسب لمريض الضغط (أملأح/دهون عالية)")
+                    reasons.append("غير مناسب لمريض الضغط")
+                    if not suggested_alternative: # لو ملوش بديل سكر ناخد بديل الضغط
+                        suggested_alternative = pressure_map[food_name_input]
                 
-                if profile.has_lactose_allergy and food_name_input in lactose_list:
+                # فحص اللاكتوز
+                if profile.has_lactose_allergy and food_name_input in lactose_map:
                     is_safe = False
-                    reasons.append("يحتوي على لاكتوز وأنت تعاني من حساسية تجاهه")
+                    reasons.append("يحتوي على لاكتوز")
+                    if not suggested_alternative:
+                        suggested_alternative = lactose_map[food_name_input]
 
-            # 4. صياغة النصيحة الصحية
+            # 4. صياغة النصيحة
             if is_safe:
                 msg = f"المنتج ({food_item.name}) مناسب وآمن لحالتك الصحية."
             else:
                 msg = f"تحذير طبي بخصوص ({food_item.name}): " + " و ".join(reasons)
 
-            # 5. حفظ السجل في الـ ScanHistory أوتوماتيكياً
+            # 5. حفظ السجل
             scan_record = ScanHistory.objects.create(
-                user_id=user_id,
+                user=user,
                 food_name=food_item.name,
                 calories=food_item.calories,
                 protein=food_item.protein,
                 carbs=food_item.carbs,
                 fats=food_item.fats,
-                is_healthy=food_item.is_healthy,
-                image=image_file
+                is_healthy=is_safe,
+                image=image_file,
+                suggested_alternative=suggested_alternative
             )
 
-            # 6. الرد النهائي بالنتائج
+            # 6. الرد النهائي بالبديل الصحي
             return Response({
                 "status": "success",
                 "message": "تم تحليل الطعام بنجاح",
                 "health_advice": msg,
+                "suggested_alternative": suggested_alternative, # البديل هيظهر هنا
                 "scan_details": {
                     "id": scan_record.id,
                     "image_url": scan_record.image.url if scan_record.image else None,
@@ -219,7 +259,7 @@ class CreateScanAPI(generics.CreateAPIView):
             }, status=status.HTTP_201_CREATED)
 
         except Exception as e:
-            return Response({"status": "error", "message": str(e)}, status=400)
+            return Response({"status": "error", "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class FoodList(generics.ListCreateAPIView):
@@ -264,20 +304,12 @@ class ChangePasswordView(generics.UpdateAPIView):
     
 
 
-class ScanHistoryList(generics.ListAPIView):
-    serializer_class = ScanHistorySerializer # غيري دي لـ ScanHistorySerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        # غيري Scan لـ ScanHistory
-        return ScanHistory.objects.filter(user=self.request.user).order_by('-created_at')
-    
-
-
-    # ضيفي ده في آخر ملف views.py
+# في views.py (تأكدي إن ده بس اللي موجود للهيستوري)
 class UserScanHistoryList(generics.ListAPIView):
     serializer_class = ScanHistorySerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        # بنستخدم scan_date عشان هو ده اللي موجود في الموديل عندك فعلاً
         return ScanHistory.objects.filter(user=self.request.user).order_by('-scan_date')
+    

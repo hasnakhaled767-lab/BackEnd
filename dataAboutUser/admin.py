@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import HealthProfile, ScanHistory, Food, AnalysisResult, FoodAlternative
+from .models import HealthProfile, ScanHistory, Food, FoodAlternative
 
 @admin.register(HealthProfile)
 class HealthProfileAdmin(admin.ModelAdmin):
@@ -20,11 +20,17 @@ class FoodAdmin(admin.ModelAdmin):
     list_display = ('name', 'calories', 'protein', 'carbs', 'fats', 'image')
     search_fields = ('name',)
 
-admin.site.register(AnalysisResult)
 admin.site.register(FoodAlternative)
 
 
 @admin.register(ScanHistory)
 class ScanHistoryAdmin(admin.ModelAdmin):
     # اتأكدي إن الأسماء دي هي اللي في الموديل بالظبط
-    list_display = ['user', 'food_name', 'scan_date', 'is_healthy', 'image', 'calories', 'protein', 'carbs', 'fats']
+    list_display = ['user', 'food_name', 'scan_date', 'is_healthy', 'image', 'calories', 'protein', 'carbs', 'fats', 'suggested_alternative']
+
+
+
+from django.contrib.auth.models import Group
+
+# السطر ده هو اللي بيمسح الـ Group من قائمة الـ Admin
+admin.site.unregister(Group)

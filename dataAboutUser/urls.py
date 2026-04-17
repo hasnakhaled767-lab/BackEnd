@@ -15,6 +15,5 @@ urlpatterns = [
     # 4. الأكلات والبدائل
     path('foods/', views.FoodList.as_view(), name='food_list'),
     path('alternatives/', views.get_alternatives_api, name='get_alternatives_api'),
-    path('scan-history/', views.ScanHistoryList.as_view(), name='scan-history'),
-    path('history/', views.UserScanHistoryList.as_view(), name='user-scan-history'),
+    path('history/', views.UserScanHistoryList.as_view(), name='user-history'),
 ]
