@@ -39,6 +39,7 @@ class ScanHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = ScanHistory
         fields = '__all__' 
+        extra_kwargs = {'food': {'required': False}}
 
 class HealthProfileSerializer(serializers.ModelSerializer):
     class Meta:

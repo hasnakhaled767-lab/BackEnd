@@ -21,6 +21,7 @@ from .serializers import ChangePasswordSerializer # تأكدي من عمل impor
 from rest_framework import generics, permissions # عشان يعرف permissions
 from .models import ScanHistory
 from .serializers import ScanHistorySerializer 
+from rest_framework.authtoken.models import Token # ضيفي الـ Import ده فوق
 
 
 # استيراد الموديلات والسيريالايزر
@@ -33,42 +34,64 @@ from .serializers import (
     FoodSerializer,
     ChangePasswordSerializer,
 )
-# --- 1. APIs الحسابات (Signup & Login) ---
+
+
 
 @api_view(['POST'])
 def signup_api(request):
     username = request.data.get('username')
-    password = request.data.get('password')
     email = request.data.get('email')
+    password = request.data.get('password')
+    confirm_password = request.data.get('confirm_password') # السطر الجديد
 
-    if not username or not password:
-        return Response({"error": "الاسم والباسورد مطلوبين"}, status=400)
+    # 1. التأكد إن كل الخانات مليانة
+    if not username or not password or not confirm_password:
+        return Response({"error": "يرجى ملء جميع الخانات المطلوبة"}, status=400)
 
-    try:
-        # 1. إنشاء اليوزر
-        user = User.objects.create_user(username=username, password=password, email=email)
-        
-        # 2. إنشاء بروفايل صحي "فاضي" مرتبط باليوزر ده
-        # هيتسيف عادي لأننا خلينا الحقول null=True
-        HealthProfile.objects.create(user=user)
+    # 2. التأكد إن الباسورد متطابق (Confirm Password Logic)
+    if password != confirm_password:
+        return Response({"error": "كلمة المرور غير متطابقة، يرجى التأكد مرة أخرى"}, status=400)
 
-        return Response({
-            "status": "success",
-            "message": "تم إنشاء الحساب بنجاح! يمكنك الآن إكمال بياناتك الصحية."
-        }, status=201)
+    # 3. التأكد إن اليوزر مش موجود قبل كدة
+    if User.objects.filter(username=username).exists():
+        return Response({"error": "اسم المستخدم موجود بالفعل"}, status=400)
 
-    except Exception as e:
-        return Response({"error": str(e)}, status=400)
+    # 4. إنشاء الحساب لو كله تمام
+    user = User.objects.create_user(username=username, email=email, password=password)
     
+    return Response({
+        "status": "success",
+        "message": "تم إنشاء حسابك بنجاح! يمكنك الآن تسجيل الدخول"
+    }, status=201)
     
+
 @api_view(['POST'])
 def login_api(request):
     username = request.data.get('username')
     password = request.data.get('password')
+
     user = authenticate(username=username, password=password)
-    if user:
-        return Response({"message": "Login successful!", "user_id": user.id}, status=200)
-    return Response({"error": "Invalid credentials"}, status=401)
+
+    if user is not None:
+        # البحث عن التوكين القديم أو إنشاء واحد جديد
+        token, created = Token.objects.get_or_create(user=user)
+        
+        return Response({
+            "status": "success",
+            "message": "تم تسجيل الدخول بنجاح",
+            "token": token.key,  # ده السطر اللي الفرونت محتاجه
+            "user_id": user.id,
+            "username": user.username
+        }, status=200)
+    else:
+        return Response({
+            "status": "error",
+            "message": "اسم المستخدم أو كلمة المرور غير صحيحة"
+        }, status=401)
+    
+
+
+
 @api_view(['POST', 'PUT'])
 def update_health_profile(request, user_id):
     try:
@@ -114,6 +137,9 @@ class CreateScanAPI(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         # 1. حفظ بيانات السكان الأساسية
         response = super().create(request, *args, **kwargs)
+        
+        image_file = request.FILES.get('image') 
+
         user_id = request.data.get('user')
         food_name = request.data.get('detected_food_name', '').lower().strip()
 
@@ -150,23 +176,42 @@ class CreateScanAPI(generics.CreateAPIView):
                 msg = f"المنتج ({food_name}) مناسب وآمن لحالتك الصحية."
             else:
                 msg = f"تحذير طبي بخصوص ({food_name}): { ' و '.join(reasons) }"
-
-            # إضافة معلومات الـ BMI و الـ BMR للرد
-            health_summary = ""
-            if profile:
-                health_summary = (f"مؤشر كتلة الجسم: {profile.bmi_value} ({profile.bmi_status}) | "
-                                 f" احتياجك اليومي للسعرات: {profile.bmr_value} سعرة.")
-
+                
+              # 3. حفظ السجل في الهيستوري (تأكدي إن الأسماء مطابقة للموديل عندك)
+            scan_record = ScanHistory.objects.create(
+                user_id=user_id,
+                food_name=food_item.name,
+                calories=food_item.calories,
+                protein=food_item.protein,
+                carbs=food_item.carbs,
+                fats=food_item.fats,
+                is_healthy=food_item.is_healthy,
+                image=image_file
+            )
+            
+            
             return Response({
                 "status": "success",
-                "is_safe": is_safe,
-                "analysis_result": msg,
-                "health_metrics": health_summary,
-                "image_url": response.data.get('image'),
+                "message": "تم تحليل الطعام بنجاح",
+                "health_advice": msg,
+                "scan_details": {
+                    "id": scan_record.id,
+                    "image_url": scan_record.image.url if scan_record.image else None,
+                    "date": scan_record.scan_date.strftime("%Y-%m-%d %H:%M")
+                },
+                "nutrition_facts": {
+                    "calories": scan_record.calories,
+                    "protein": scan_record.protein,
+                    "carbs": scan_record.carbs,
+                    "fats": scan_record.fats,
+                }
             }, status=status.HTTP_201_CREATED)
 
         except Exception as e:
+            # الـ except لازم تكون على نفس مستوى الـ try
             return Response({"status": "error", "message": str(e)}, status=400)
+
+
 
 class FoodList(generics.ListCreateAPIView):
     queryset = Food.objects.all()
@@ -217,4 +262,6 @@ class ScanHistoryList(generics.ListAPIView):
     def get_queryset(self):
         # غيري Scan لـ ScanHistory
         return ScanHistory.objects.filter(user=self.request.user).order_by('-created_at')
+    
+
     

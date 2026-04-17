@@ -56,11 +56,14 @@ class Food(models.Model):
 # 3. جدول سجل الفحوصات (يربط المستخدم بالأكلة وصورتها)
 class ScanHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    food = models.ForeignKey(Food, on_delete=models.SET_NULL, null=True, blank=True)
-    detected_food_name = models.CharField(max_length=100, null=True, blank=True) 
-    image = models.ImageField(upload_to='scans/', null=True, blank=True) # يحتاج مكتبة Pillow
-    created_at = models.DateTimeField(auto_now_add=True)
-
+    food_name = models.CharField(max_length=255)
+    calories = models.FloatField()
+    protein = models.FloatField()
+    carbs = models.FloatField()
+    fats = models.FloatField()
+    is_healthy = models.BooleanField(default=True)
+    image = models.ImageField(upload_to='scans/', null=True, blank=True)
+    scan_date = models.DateTimeField(auto_now_add=True) # بيسجل التاريخ والوقت تلقائياً
     def __str__(self):
         return f"{self.user.username} scanned {self.detected_food_name}"
 

@@ -42,6 +42,7 @@ INSTALLED_APPS = [
 'django_extensions',
 'rest_framework',
 'drf_yasg',
+'rest_framework.authtoken',  # ضيفي السطر ده لو مش موجود
 ]
 
 MIDDLEWARE = [
@@ -120,4 +121,14 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+import os
+
+# المسار اللي الصور هتتحفظ فيه على جهازك
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+
+
 
