@@ -49,6 +49,7 @@ class Food(models.Model):
     protein = models.FloatField(default=0.0)
     carbs = models.FloatField(default=0.0)
     fats = models.FloatField(default=0.0)
+    image = models.ImageField(upload_to='foods/', null=True, blank=True) # العمود الجديد
 
     def __str__(self):
         return self.name

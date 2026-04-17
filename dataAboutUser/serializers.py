@@ -37,9 +37,12 @@ class ScanHistorySerializer(serializers.ModelSerializer):
     image = serializers.ImageField(required=True) # السطر ده هو "كلمة السر" للزرار
 
     class Meta:
-        model = ScanHistory
-        fields = '__all__' 
+      model = ScanHistory
+      
+      fields = ['image', 'food_name', 'calories', 'protein', 'carbs', 'fats', 'is_healthy', 'user']
+      read_only_fields = ['food_name', 'calories', 'protein', 'carbs', 'fats', 'is_healthy', 'user']
 
+      
 class HealthProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = HealthProfile

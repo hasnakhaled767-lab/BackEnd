@@ -93,40 +93,48 @@ def login_api(request):
 
 
 @api_view(['POST', 'PUT'])
-def update_health_profile(request, user_id):
+@permission_classes([IsAuthenticated])  # مهم جداً عشان التوكين يشتغل
+def update_health_profile(request):  # شلنا الـ user_id من هنا نهائياً
     try:
-        profile = HealthProfile.objects.get(user_id=user_id)
+        # 1. بنجيب بيانات اليوزر من التوكين أوتوماتيك
+        user = request.user
         
-        # نسخة قابلة للتعديل من البيانات المبعوتة
+        # 2. نسخة قابلة للتعديل من البيانات المبعوثة
         data = request.data.copy()
 
+        # 3. البحث عن بروفايل اليوزر أو إنشاؤه لو مش موجود
+        profile, created = HealthProfile.objects.get_or_create(user=user)
+
+        # 4. تمرير البيانات للسيرياليزر للتحديث
         serializer = HealthProfileSerializer(profile, data=data, partial=True)
-        
+
         if serializer.is_valid():
-            # حفظ البيانات (طول، وزن، إلخ)
+            # حفظ البيانات الصحية
             updated_profile = serializer.save()
 
             # حساب الهدف اليومي (BMR * 1.2)
-            # بنستخدم الـ property اللي في الموديل مباشرة
+            # تأكدي إن bmr_value معرفة كميثود أو بروبرتي في الموديل عندك
             daily_goal = round(updated_profile.bmr_value * 1.2)
-            
+
             return Response({
                 "status": "success",
-                    "message": "تم تحديث البيانات الصحية بنجاح!",       
-                    "results": {
+                "message": "تم تحديث البيانات الصحية بنجاح!",
+                "results": {
                     "bmi": updated_profile.bmi_value,
                     "bmi_status": updated_profile.bmi_status,
                     "bmr_basic": updated_profile.bmr_value,
-                    "daily_calories_goal": daily_goal, # ده الهدف اللي هيظهر في الـ App
+                    "daily_calories_goal": daily_goal,
                 },
                 "data": serializer.data
             }, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    except HealthProfile.DoesNotExist:
-        return Response({"error": "البروفايل غير موجود"}, status=404)
-# --- 3. الـ API الأساسي للـ Scan والتحليل (مع زرار الرفع) ---
+    except Exception as e:
+        return Response({
+            "status": "error",
+            "message": str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class CreateScanAPI(generics.CreateAPIView):
@@ -135,49 +143,52 @@ class CreateScanAPI(generics.CreateAPIView):
     parser_classes = (MultiPartParser, FormParser)
 
     def create(self, request, *args, **kwargs):
-        # 1. حفظ بيانات السكان الأساسية
-        response = super().create(request, *args, **kwargs)
-        
-        image_file = request.FILES.get('image') 
-
+        # 1. الحصول على البيانات الأساسية من الطلب
+        image_file = request.FILES.get('image')
         user_id = request.data.get('user')
-        food_name = request.data.get('detected_food_name', '').lower().strip()
+        # نفترض أن اسم الأكلة يأتي من موديل الـ AI أو مدخل بسيط
+        food_name_input = request.data.get('detected_food_name', '').lower().strip()
+
+        if not image_file or not user_id:
+            return Response({"error": "يرجى إرسال الصورة ومعرف المستخدم"}, status=400)
 
         try:
+            # 2. جلب بروفايل المستخدم وبيانات الطعام من الداتابيز
             profile = HealthProfile.objects.filter(user_id=user_id).first()
-            food_item = Food.objects.filter(name__iexact=food_name).first()
+            food_item = Food.objects.filter(name__iexact=food_name_input).first()
 
+            if not food_item:
+                return Response({"error": "هذا الطعام غير مسجل في قاعدة البيانات"}, status=404)
+
+            # 3. منطق فحص الحالة الصحية (السكري، الضغط، اللاكتوز)
             is_safe = True
             reasons = []
-
-            # --- مجموعات الأكلات الطبية بناءً على لستة الداتابيز ---
+            
+            # القوائم الطبية التحذيرية
             diabetes_list = ['pancakes', 'waffles', 'ice cream', 'milkshakes', 'pizza', 'grapes', 'mango', 'pineapple', 'watermelon']
             pressure_list = ['bacon', 'sausage', 'hot dogs', 'steak', 'burgers', 'pizza', 'french fries', 'shrimp']
-            lactose_list = ['ice cream', 'milkshakes', 'pancakes', 'waffles', 'pizza', 'cheese'] # مجموعة اللاكتوز
+            lactose_list = ['ice cream', 'milkshakes', 'pancakes', 'waffles', 'pizza', 'cheese']
 
             if profile:
-                # فحص السكري
-                if profile.has_diabetes and food_name in diabetes_list:
+                if profile.has_diabetes and food_name_input in diabetes_list:
                     is_safe = False
                     reasons.append("غير مناسب لمريض السكر (سكريات/نشويات عالية)")
-
-                # فحص الضغط
-                if profile.has_blood_pressure and food_name in pressure_list:
-                    is_safe = False
-                    reasons.append("غير مناسب لمريض الضغط (املاح/دهون عالية)")
-
-                # فحص حساسية اللاكتوز
-                if profile.has_lactose_allergy and food_name in lactose_list:
-                    is_safe = False
-                    reasons.append("يحتوي على لاكتوز (ألبان) وأنت تعاني من حساسية تجاهه")
-
-            # صياغة الرسالة النهائية
-            if is_safe:
-                msg = f"المنتج ({food_name}) مناسب وآمن لحالتك الصحية."
-            else:
-                msg = f"تحذير طبي بخصوص ({food_name}): { ' و '.join(reasons) }"
                 
-              # 3. حفظ السجل في الهيستوري (تأكدي إن الأسماء مطابقة للموديل عندك)
+                if profile.has_blood_pressure and food_name_input in pressure_list:
+                    is_safe = False
+                    reasons.append("غير مناسب لمريض الضغط (أملأح/دهون عالية)")
+                
+                if profile.has_lactose_allergy and food_name_input in lactose_list:
+                    is_safe = False
+                    reasons.append("يحتوي على لاكتوز وأنت تعاني من حساسية تجاهه")
+
+            # 4. صياغة النصيحة الصحية
+            if is_safe:
+                msg = f"المنتج ({food_item.name}) مناسب وآمن لحالتك الصحية."
+            else:
+                msg = f"تحذير طبي بخصوص ({food_item.name}): " + " و ".join(reasons)
+
+            # 5. حفظ السجل في الـ ScanHistory أوتوماتيكياً
             scan_record = ScanHistory.objects.create(
                 user_id=user_id,
                 food_name=food_item.name,
@@ -188,8 +199,8 @@ class CreateScanAPI(generics.CreateAPIView):
                 is_healthy=food_item.is_healthy,
                 image=image_file
             )
-            
-            
+
+            # 6. الرد النهائي بالنتائج
             return Response({
                 "status": "success",
                 "message": "تم تحليل الطعام بنجاح",
@@ -203,14 +214,12 @@ class CreateScanAPI(generics.CreateAPIView):
                     "calories": scan_record.calories,
                     "protein": scan_record.protein,
                     "carbs": scan_record.carbs,
-                    "fats": scan_record.fats,
+                    "fats": scan_record.fats
                 }
             }, status=status.HTTP_201_CREATED)
 
         except Exception as e:
-            # الـ except لازم تكون على نفس مستوى الـ try
             return Response({"status": "error", "message": str(e)}, status=400)
-
 
 
 class FoodList(generics.ListCreateAPIView):
