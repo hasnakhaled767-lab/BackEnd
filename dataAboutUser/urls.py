@@ -2,18 +2,19 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # 1. حسابات المستخدمين
+    # --- 1. حسابات المستخدمين (Signup & Login) ---
     path('signup/', views.signup_api, name='signup_api'),
     path('login/', views.login_api, name='login_api'),
-    path('change-password/', views.ChangePasswordView.as_view(), name='change_password'), 
-    # 2. البيانات الصحية (البروفايل)
+    path('change-password/', views.ChangePasswordView.as_view(), name='change_password'),
+
+    # --- 2. البيانات الصحية (البروفايل) ---
     path('profile/update/<int:user_id>/', views.update_health_profile, name='update_health_profile'),
 
-    # 3. الـ Scan والتحليل
+    # --- 3. السحب والتحليل (Scanning) ---
     path('create_scan_api/', views.CreateScanAPI.as_view(), name='create_scan_api'),
-    
-    # 4. الأكلات والبدائل
+    path('scan-history/', views.ScanHistoryList.as_view(), name='scan-history'),
+
+    # --- 4. الأكلات والبدائل ---
     path('foods/', views.FoodList.as_view(), name='food_list'),
     path('alternatives/', views.get_alternatives_api, name='get_alternatives_api'),
-    path('scan-history/', views.ScanHistoryList.as_view(), name='scan-history'),
 ]
