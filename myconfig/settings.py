@@ -25,8 +25,10 @@ SECRET_KEY = 'django-insecure-rve5kha9vc!vb=t^g8$^9vevq0e2jry)r+$@gz)12$tsdi-sc9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*']  # اسمح لأي حد يدخل
 
+# امسحي أي لينكات قديمة وحطي النجمة دي بس:
+CSRF_TRUSTED_ORIGINS = ['https://*.loca.lt', 'http://*.loca.lt']
 # Application definition
 
 INSTALLED_APPS = [
@@ -46,7 +48,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    #'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -119,9 +121,3 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication', # دي اللي بتخلي الـ Login في تابة يسمع في الباقي
-        'rest_framework.authentication.BasicAuthentication',
-    ],
-}
