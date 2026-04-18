@@ -203,20 +203,20 @@ class CreateScanAPI(generics.CreateAPIView):
                 # فحص السكر
                 if profile.has_diabetes and food_name_input in diabetes_map:
                     is_safe = False
-                    reasons.append("غير مناسب لمريض السكر")
+                    reasons.append("غير مناسب لمريض السكر (سكريات/نشويات عالية)")
                     suggested_alternative = diabetes_map[food_name_input]
                 
                 # فحص الضغط
                 if profile.has_blood_pressure and food_name_input in pressure_map:
                     is_safe = False
-                    reasons.append("غير مناسب لمريض الضغط")
+                    reasons.append("غير مناسب لمريض الضغط (أملاح/دهون عالية)")
                     if not suggested_alternative: # لو ملوش بديل سكر ناخد بديل الضغط
                         suggested_alternative = pressure_map[food_name_input]
                 
                 # فحص اللاكتوز
                 if profile.has_lactose_allergy and food_name_input in lactose_map:
                     is_safe = False
-                    reasons.append("يحتوي على لاكتوز")
+                    reasons.appendreasons.append("يحتوي على لاكتوز وأنت تعاني من حساسية تجاهه")
                     if not suggested_alternative:
                         suggested_alternative = lactose_map[food_name_input]
 
